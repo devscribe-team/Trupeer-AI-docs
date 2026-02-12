@@ -1,0 +1,143 @@
+---
+title: Autopilot Generate Feature
+icon: rocket
+---
+## Overview
+
+The Autopilot Generate feature provides AI-powered documentation generation directly from your codebase. Users select a documentation type, specify a repository and branch, then use conversational prompts to generate and refine professional documentation.
+
+## Architecture
+
+### Core Components
+
+**Generation Modal** (`generate-modal.tsx`) — Handles initial configuration with a two-step flow: documentation type selection (API Reference, External Docs, or Internal Docs), followed by repository and branch selection.
+
+**Generation Interface** (`generate-docs.tsx`) — Provides three integrated workspaces: document management sidebar, content editor with live preview, and generation controls.
+
+**Generation Hook** (`use-generation.ts`) — Manages the generation lifecycle including streaming responses, content accumulation, and error handling through an abort controller pattern.
+
+**State Management** (`useGenerateDocsState.ts`) — Maintains document state including content, prompts, context files, save status, and chat history across the session with persistence to `sessionStorage`.
+
+### Data Flow
+
+1. **Configuration**: User selects doc type (API/External/Internal), repository, and optional branch through `GenerateModal`
+2. **Context Selection**: User adds up to 5 context files from repository tree via `ContextFileSelect` 
+3. **Prompt Submission**: User enters prompt or selects from type-specific suggestions in `PromptInputPanel`
+4. **Backend Request**: POST to `/agent/generate` or `/agent/edit` with:
+
+<CodeSnippet language="typescript">
+{`{
+  prompt: string,
+  paths: string[],           // Context file paths
+  repo: string,
+  docType: string,           // "API References" | "External Docs" | "Internal Docs"
+  branch?: string,
+  endpoint?: string,         // Required for API docs
+  supabase_user_id: string,
+  existing_doc?: string      // For edit endpoint only
+}`}
+</CodeSnippet>
+
+5. **Streaming Response**: Backend streams two phases separated by delimiter `asldjfnp2o9iru2039`:
+   - **Thinking Phase**: Tool calls and planning messages displayed in `ThinkingPreview`
+   - **Content Phase**: Generated markdown accumulated and displayed in editor
+
+6. **Iteration**: Users can refine generated content by submitting follow-up prompts, which sends the existing content plus the new request
+
+## Document States
+
+Each document maintains the following state:
+
+<CodeSnippet language="typescript">
+{`{
+  title: string,
+  content: string,              // Current editor content
+  savedContent: string,         // Last persisted content
+  prompt: string,               // Current input prompt
+  context: string[],            // File paths for context
+  saved: boolean,               // Sync status
+  docType: DocType,            
+  isGenerating: boolean,        // Active generation flag
+  streamContent: string,        // Thinking phase output
+  lastSavedTitle: string,       // For rename cleanup
+  chatHistory: ChatMessage[]    // Conversation log
+}`}
+</CodeSnippet>
+
+## Key Features
+
+### Context-Aware Generation
+
+<Callout type="info">
+Users select specific files from their repository to provide focused context. The system limits to 5 files to optimize generation quality and speed.
+</Callout>
+
+### Streaming Visualization
+
+During generation, `ThinkingPreview` parses the streaming output to display:
+- Tool calls (Grep, Read, Glob, Bash) with formatted arguments
+- Planning messages from the AI agent
+- Real-time progress indicator
+
+### Iterative Refinement
+
+After initial generation, users can request modifications. The system:
+1. Appends user prompt to `chatHistory`
+2. Sends existing content as `existing_doc` for edit endpoint
+3. Streams updated content
+4. Appends assistant response to `chatHistory`
+
+### Multi-Document Management
+
+Users cancreate and manage multiple documents simultaneously through the left sidebar with:
+- Individual save status indicators
+- Per-document context and prompts
+- Session persistence via `sessionStorage`
+
+### Cancellation
+
+<Callout type="warning">
+Users can abort in-progress generation using the Stop button, which:
+1. Aborts the fetch request via `AbortController`
+2. Restores pre-generation state from `preGenerationStateRef`
+3. Clears streaming content
+</Callout>
+
+### Suggested Prompts
+
+<Callout type="tip">
+Each documentation type provides 5 curated prompt templates accessible via the lightbulb icon, covering common scenarios like:
+- **API**: Reference generation, schema documentation, authentication guides
+- **External**: User guides, tutorials, troubleshooting
+- **Internal**: Process documentation, onboarding, architecture decisions
+</Callout>
+
+## Pricing Integration
+
+<Callout type="success">
+The Autopilot feature is part of the "Agentic Docs" tier (formerly "Autopilot" in pricing config) at **$39/month** or **$399/year**, which includes:
+- Generate API Docs
+- Generate User Guides  
+- Auto Updating Docs
+- AI Assistant Search
+- Advanced Analytics
+- Full customization and deployment features
+</Callout>
+
+## Technical Considerations
+
+<Callout type="info">
+**Session Persistence**: Document state persists to `sessionStorage` after each update, enabling recovery across page refreshes.
+</Callout>
+
+<Callout type="error">
+**Error Handling**: Generation failures display toast notifications and restore UI to the pre-generation state without losing user work.
+</Callout>
+
+<Callout type="tip">
+**Delimiter Protocol**: The backend uses a unique delimiter (`asldjfnp2o9iru2039`) to separate thinking from content phases, ensuring clean separation of streaming phases.
+</Callout>
+
+<Callout type="warning">
+**Abort Safety**: All fetch operations use `AbortController` with proper cleanup to prevent memory leaks and dangling requests.
+</Callout>

@@ -19,6 +19,7 @@
               "group": "Quickstart",
               "pages": [
                 "quickstart/guide",
+                "new-doc",
                 "quickstart/docs-json",
                 "quickstart/updates",
                 {
