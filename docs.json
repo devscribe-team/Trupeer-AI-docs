@@ -20,6 +20,7 @@
               "pages": [
                 "quickstart/guide",
                 "quickstart/docs-json",
+                "quickstart/updates",
                 {
                   "dropdown": "Dropdown Example",
                   "pages": [
