@@ -1,0 +1,27 @@
+---
+title: Latest Commit Summary
+icon: file-text
+---
+## Summary
+
+The commit removes mock/testing code from the MCP updates pipeline and restores real async function calls for PR documentation updates.
+
+## Changes
+
+**File Modified:** `app/features/MCP/updates.py` (10 insertions, 17 deletions)
+
+<Callout type="info">
+The update refactors the `updates_pipeline_streaming` function by restoring the full production workflow.
+</Callout>
+
+### Key Modifications
+
+- **Restored real pipeline execution**: Uncommented all async function calls (`pr_info_extraction`, `change_analyzer`, `download_documentation_repo`, `embedder`, `detector`, `generator`) that were previously commented out for testing
+
+- **Removed mock data source**: Commented out the code that read from `fake_result.json` for testing purposes
+
+- **Removed artificial delays**: Deleted `asyncio.sleep(2)` calls that simulated processing time during testing
+
+<Callout type="success">
+The pipeline now executes the full documentation update workflow including PR information extraction, change analysis, documentation downloading/embedding, impact detection, and update generation rather than using mocked responses.
+</Callout>
